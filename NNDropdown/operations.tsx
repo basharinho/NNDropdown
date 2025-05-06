@@ -19,8 +19,20 @@ export function _writeLog(message: string, data?: any) {
 export async function _getAvailableOptions(context: ComponentFramework.Context<IInputs>, setting: Setting) {
   const baseFetchXml = `<fetch><entity name="${setting.targetEntityName}" /></fetch>`;
   const userFetchXml = setting.targetEntityFilter ? setting.targetEntityFilter : "";
-  const fetchXml = userFetchXml != "" ? userFetchXml : baseFetchXml;
-  _writeLog("Using this FetchXML for all available options", fetchXml);
+  const dependentOnFieldFilter = setting.dependentFieldName ? setting.dependentFieldName : "";
+  let fetchXml; //= userFetchXml != "" ? dependentOnFieldFilter != "" ? await _filterRelatedRecords(context, setting) : userFetchXml : baseFetchXml;
+  
+  if(userFetchXml != "") {
+    fetchXml = userFetchXml;
+  }
+  else if(dependentOnFieldFilter != "") {
+    fetchXml = await _filterRelatedRecords(context, setting);
+  }
+  else {
+    fetchXml = baseFetchXml;
+  }
+
+  //_writeLog("Using this FetchXML for all available options", fetchXml);
 
   const allOptionsSet = await webAPIHelper.retrieveDataFetchXML(context, setting.targetEntityName, fetchXml);
   _writeLog("Retrieved Data RAW allOptionsSet", allOptionsSet);
@@ -72,6 +84,7 @@ export function _proccessSetting(context: ComponentFramework.Context<IInputs>) {
     relationShipEntityName: context.parameters.relationshipentityname.raw ? context.parameters.relationshipentityname.raw : "",
     targetEntityName: context.parameters.targetentityname.raw ? context.parameters.targetentityname.raw : "",
     targetEntityFilter: context.parameters.targetentityfilter.raw ? context.parameters.targetentityfilter.raw : "",
+    dependentFieldName: context.parameters.dependentlookupfield.raw && context.parameters.dependentlookupfield.raw[0]?.entityType ? context.parameters.dependentlookupfield.raw[0].entityType : "",
   }
   return setting;
 }
@@ -156,6 +169,7 @@ export async function _execute(context: ComponentFramework.Context<IInputs>, con
   const _setting = _proccessSetting(context);
   _writeLog("Retrieved Settings", _setting);
 
+
   if (_setting.primaryEntityId) {
 
     const dropDownData: DropDownData = {
@@ -171,5 +185,29 @@ export async function _execute(context: ComponentFramework.Context<IInputs>, con
     //@ts-ignore
     const msg = <div>This record hasn't been created yet. To enable this control, create the record.</div>;
     ReactDOM.render(msg, container);
+  }
+}
+
+export async function _filterRelatedRecords(context: ComponentFramework.Context<IInputs>, setting: Setting) {
+  const dependentLookupValue = context.parameters.dependentlookupfield.raw;
+
+  if (dependentLookupValue && dependentLookupValue[0]) {
+    const dependentLookupId = dependentLookupValue[0].id.replace(/[{}]/g, ""); // Parse as object and remove curly braces
+
+    // Construct FetchXML query to filter related records
+    const fetchXml = `
+      <fetch>
+        <entity name="${setting.targetEntityName}">
+          <filter>
+            <condition attribute="${setting.dependentFieldName}" operator="eq" value="${dependentLookupId}" />
+          </filter>
+        </entity>
+      </fetch>
+    `;
+
+    return fetchXml;
+  } else {
+    _writeLog("Dependent lookup field value is not set.");
+    return "";
   }
 }

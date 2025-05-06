@@ -12,7 +12,8 @@ export interface Setting {
     relationShipName: string;
     relationShipEntityName : string;
     targetEntityName: string;    
-    targetEntityFilter: string; 
+    targetEntityFilter: string;
+    dependentFieldName: string; 
 }
 
 export interface EntityReference {
