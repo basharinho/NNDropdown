@@ -11,8 +11,8 @@ export async function _sleep(ms: number) {
 
 export function _writeLog(message: string, data?: any) {
   const condition = true;
-  if (condition) { //Needs to be set back to a shared value. Had issue when the control was on the form multiple times. Settings/Globals were mixed.
-    console.log(message, data);
+  if (condition) { //Needs to be set back to a shared value. Had issue when the control was on the form multiple times. Settings/Globals were mixed
+      console.log(message, data);
   }
 }
 
